@@ -1,0 +1,8 @@
+
+.htaccess
+error_log
+*.sln
+*.phpproj
+*.user
+.vs/ATMF/DesignTimeBuild/.dtbcache.v2
+.vs/ATMF/v16/.suo

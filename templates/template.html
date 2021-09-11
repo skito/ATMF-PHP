@@ -1,0 +1,46 @@
+
+<br /><br />
+<div>
+    {@page.description}
+</div>
+<br /><br />
+<h3>{@page.pluralsDemo}</h3>
+{@page.theFox 10 red}<br />
+{@page.theFox 1 blue}<br />
+<br /><br /><br />
+
+<h3>{@page.eachAndIF}</h3>
+<table style="min-width:500px" cellspacing="10">
+    <tr style="font-weight:bold">
+        <td>Author Name</td>
+        <td>Books</td>
+        <td>Sold Out</td>
+    </tr>
+    {#each $authors as $author}
+        <tr>
+            <td>
+                {$author.firstName " " $author.lastName}
+            </td>
+            <td>
+                <ul>
+                {#each $author.books as $book}
+                    <li>{$book}</li>
+                {#end}
+                </ul>
+            </td>
+            <td>
+                {#if $author.soldOut}
+                    <span style="color:red">Sold out</span>
+                {#else}
+                    <span style="color:green">In stock</span>
+                {#end}
+            </td>
+        </tr>
+    {#end}
+</table>
+
+<h3>{@page.extensions}</h3>
+<div>{@page.extDescription}</div>
+<br /><br />
+Today date is {/date "M d, Y"}<br />
+Time now is {/date "H:i"}<br />
