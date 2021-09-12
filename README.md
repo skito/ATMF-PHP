@@ -103,4 +103,46 @@ __Extensions__
 <h1>Today date is {/date "M d, Y"}</h1>
 ```
 
-__Full demo available at index.php and the templates folder__
+Full demo available at ``index.php`` and the ``templates`` folder
+
+# Custom Extensions
+You can make your own custom extensions by exending the ``\ATMF\Extension`` interface.
+
+```php
+<?php
+class MyCustomExtension implements \ATMF\Extension
+{
+    public $str = "My custom extension";
+    public function __construct() {}
+    
+    public function Get($args) 
+    {
+        return $this->str;
+    }
+    
+    public function Set($args, $value) 
+    {
+        $this->str = $value;
+    }
+}
+\ATMF\Extensions::Register('mycustom', new MyCustomExtension());
+```
+
+The template:
+```html
+<div>
+    <span>{/mycustom}</span> <!-- OUTPUT: My custom extension -->
+</div>
+```
+
+The backend:
+```php
+<?php
+__('/mycustom') // Returns "My custom extension"
+__('/mycustom', 'Another custom value') // Change the value
+__('/mycustom') // Returns "Another custom value"
+```
+
+For more advanced example with arguments check the date core extension inside ``atmf/core/ext/date``
+
+
