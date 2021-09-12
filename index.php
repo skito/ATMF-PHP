@@ -76,4 +76,7 @@ __('$authors', $authors);
 //$atmf->SetCulture('bg-BG'); // Default: en-US
 //$atmf->allowGlobals = true; // Default: FALSE. Be careful with that if set it to TRUE!
 
+$locale = isset($_GET['locale']) && in_array($_GET['locale'], ['en-US', 'bg-BG']) ? $_GET['locale'] : 'en-US';
+$atmf->SetCulture($locale);
+
 $atmf->Rend();
