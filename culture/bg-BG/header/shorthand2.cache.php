@@ -1,4 +1,4 @@
 <?php
 return [
-'shorthand2Key' => 'шорткът чрез #use @keypath as ...'
+'shorthand2Key' => 'шорткът чрез <code>\{#use @keypath as ...}</code>'
 ];

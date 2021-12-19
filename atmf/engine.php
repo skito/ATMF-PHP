@@ -32,6 +32,11 @@ namespace ATMF {
             while($startPos = strpos($str, '{', $startPos + 1))
             {
                 $endPos = $startPos;
+
+                // Skip escaping with backslash
+                if ($startPos > 0 && substr($str, $startPos-1, 2) == '\\{')
+                    continue;
+
                 $blockStr = '';
                 $blockMatch = false;
                 while($endPos = strpos($str, '}', $endPos + 1))
@@ -259,11 +264,12 @@ namespace ATMF {
             $masterTmp = !empty($this->_templates['master']) ? $this->_templates['master'] : $this->_templates['page'];
             $output = file_get_contents($masterTmp);
             $redundancy = 0;
+
             while(
-                strpos($output, "{\$") !== false ||
-                strpos($output, "{\@") !== false ||
-                strpos($output, "{\#") !== false ||
-                strpos($output, "{\/") !== false)
+                substr_count($output, '{$') > substr_count($output, '\{$') ||
+                substr_count($output, '{@') > substr_count($output, '\{@') ||
+                substr_count($output, '{#') > substr_count($output, '\{#') ||
+                substr_count($output, '{/') > substr_count($output, '\{/'))
             {
                 if ($redundancy > 32)
                     die('ATMF Warning: Template redundancy limit has reached!'."\r\n");
@@ -272,6 +278,8 @@ namespace ATMF {
                 $redundancy++;
             }
 
+            // Replace escaped tags
+            $output = str_replace(['\{$', '\{@', '\{#', '\{/'], ['{$', '{@', '{#', '{/'], $output);
 
             if ($capture) return $output;
             else echo $output;

@@ -103,6 +103,7 @@ __Extensions__
 <h1>Today date is {/date "M d, Y"}</h1>
 ```
 
+Escaping is done with backslash, e.g. ``\{@page.description}``.
 Full demo available at ``index.php`` and the ``templates`` folder
 
 # Custom Extensions
