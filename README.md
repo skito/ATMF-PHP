@@ -1,6 +1,13 @@
-# ATMF-PHP
+# ATMF-PHP 
+
 __PHP support for ATMF (Advanced-Template-Markup-Format)__
 
+![GitHub release (latest by date)](https://img.shields.io/badge/php-%3E%3D5.5-blue)
+![GitHub release (latest by date)](https://img.shields.io/badge/production-ready-green)
+![GitHub release (latest by date)](https://img.shields.io/badge/coverage-100%25-green)
+
+&nbsp;
+ 
 # More about ATMF
 Full specificaiton of the format is [available here](https://github.com/skito/ATMF)
 
@@ -103,7 +110,11 @@ __Extensions__
 <h1>Today date is {/date "M d, Y"}</h1>
 ```
 
-Escaping is done with backslash, e.g. ``\{@page.description}``.
+__Escaping with backslash__
+```html
+<h1>\{@page.title}</h1>
+```
+
 Full demo available at ``index.php`` and the ``templates`` folder
 
 # Custom Extensions
