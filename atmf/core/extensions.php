@@ -6,6 +6,11 @@ class Extensions
 {
     private static $_extensions = [];
 
+    /**
+     * Register custom ATMF extension
+     * @param string $name ATMF tag name which will trigger the extension
+     * @param mixed $handler Extension handler
+     */
     public static function Register($name, $handler)
     {
         if (trim($name) == '') die('ATMF extension handler must have a name!');
@@ -15,11 +20,20 @@ class Extensions
         else die('ATMF extension handler must inherit the Extension interface!');
     }
 
+    /**
+     * Get all extensions enabled
+     * @return Extension[]
+     */
     public static function GetAll()
     {
         return self::$_extensions;
     }
 
+    /**
+     * Get extension by name
+     * @param string $name Extension name
+     * @return Extension|null Extension object if found. NULL otherwise.
+     */
     public static function GetByName($name)
     {
         if (isset(self::$_extensions[$name]))
@@ -27,6 +41,13 @@ class Extensions
         else return null;
     }
 
+    /**
+     * Process extension tag
+     * @param mixed $sender ATMF engine
+     * @param mixed $tagName Extension name
+     * @param mixed $args Args passed to the extension
+     * @return mixed
+     */
     public static function ProcessTag($sender, $tagName, $args)
     {
 
@@ -36,23 +57,17 @@ class Extensions
 
         $str = $handler->Get($args);
 
-        /*if (isset($sender->vars[$varname])) $str .= $sender->vars[$varname];
-        elseif ($sender->allowGlobals && isset($GLOBALS[$varname])) $str .= $GLOBALS[$varname];
-
-        foreach($args as $arg)
-        {
-            if (substr($arg, 0, 1) == '$')
-            {
-                $varname = substr($arg, 1);
-                if (isset($sender->vars[$varname])) $str .= $sender->vars[$varname];
-                elseif ($sender->allowGlobals && isset($GLOBALS[$varname])) $str .= $GLOBALS[$varname];
-            }
-            else $str .= $arg;
-        }*/
-
         return $str;
     }
 
+    /**
+     * Send value to extension tag
+     * @param mixed $sender ATMF engine
+     * @param mixed $tagName Extension name
+     * @param mixed $args Args passed to the extension
+     * @param mixed $value Value to set
+     * @return mixed
+     */
     public static function SetTag($sender, $tagName, $args, $value)
     {
         $extname = substr($tagName, 1);
@@ -63,6 +78,9 @@ class Extensions
     }
 }
 
+/**
+ * Extensinsion interface for custom ATMF extensions.
+ */
 interface Extension
 {
     public function Get($args);

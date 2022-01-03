@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * ATMF date core extensions. Part of ATMF core.
+ * @license: Apache-2.0 License
+ * @repository: https://github.com/skito/ATMF-PHP
+ */
+
 namespace ATMF\CoreExtensions;
 
 class DateExtension implements \ATMF\Extension

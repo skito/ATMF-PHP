@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * ATMF Engine. Part of ATMF core.
+ * @license: Apache-2.0 License
+ * @repository: https://github.com/skito/ATMF-PHP
+ */
+
 namespace ATMF {
 
     class Engine
@@ -20,11 +26,20 @@ namespace ATMF {
 
         public static $latestInstance = null;
 
+        /**
+         * Constructor
+         * @param bool $linkGlobalSelectors Whether to link gloval selector functions __ with this instance
+         */
         public function __construct($linkGlobalSelectors=true)
         {
             if ($linkGlobalSelectors) self::$latestInstance = $this;
         }
 
+		/**
+		 * Parse ATMF markup
+		 * @param string $str ATMF markup (including mustage quotes)
+		 * @return string Processed markup
+		 */
 		public function ParseMarkup($str)
         {
             // ATMF Tags
@@ -131,6 +146,11 @@ namespace ATMF {
             return $str;
         }
 
+        /**
+         * (For internal use) Parsing of #each, #if, #else blocks
+         * @param string $blockStr - As resulted from ParseMarkup operation
+         * @return string - Processed markup
+         */
         public function ParseBlocks($blockStr)
         {
             if (strpos($blockStr, '<%:block_start%><%:show%>') === 0)
@@ -172,14 +192,26 @@ namespace ATMF {
             return '';
         }
 
+        /**
+         * Global selector
+         * @param string $key - ATMF markup
+         * @param mixed $val - Value for setting
+         * @return mixed Parsed ATMF markup if key only is provided. NONE/VOID if value is provided.
+         */
         public function __($key, $val=null)
         {
             $tag = Tag::ParseStr($key);
+            if ($tag == null) return;
 
             if ($val != null) $tag->Set($this, $val);
             else return $tag->Build($this);
         }
 
+        /**
+         * Converts mustages in applicable HTML characters
+         * @param mixed $str String to escape
+         * @return string Escaped string
+         */
         public function __escape($str)
         {
             $str = str_replace('{', '&lcub;', $str);
@@ -203,6 +235,10 @@ namespace ATMF {
                 $this->_disableParsing -= 1;
         }
 
+        /**
+         * Set culture folder path
+         * @param mixed $path Path to the main culture folder
+         */
         public function SetCultureFolder($path)
         {
             if ($this->_cultureFolder != $path)
@@ -212,11 +248,19 @@ namespace ATMF {
             }
         }
 
+        /**
+         * Get the current culture folder
+         * @return string Path to the current culture folder
+         */
         public function GetCultureFolder()
         {
             return $this->_cultureFolder;
         }
 
+        /**
+         * Set current culture
+         * @param mixed $culture The culture as described in the culture folder
+         */
         public function SetCulture($culture='')
         {
             if ($this->_currentCulture != $culture)
@@ -231,11 +275,20 @@ namespace ATMF {
             }
         }
 
+        /**
+         * Get current culture
+         * @return string Current culture string
+         */
         public function GetCulture()
         {
             return $this->_currentCulture;
         }
 
+        /**
+         * Get template by name
+         * @param string $name Template name
+         * @return mixed String if the template exists. FALSE otherwise.
+         */
         public function GetTemplate($name)
         {
             if (!empty( $this->_templates[$name]))
@@ -243,6 +296,11 @@ namespace ATMF {
             else return false;
         }
 
+        /**
+         * Set template
+         * @param mixed $name Name of the template
+         * @param mixed $filepath Template file path
+         */
         public function SetTemplate($name, $filepath)
         {
             if ($filepath != null && !file_exists($filepath))
@@ -251,11 +309,20 @@ namespace ATMF {
             $this->_templates[$name] = $filepath;
         }
 
+        /**
+         * Set master template
+         * @param mixed $filepath Template file path
+         */
         public function SetMasterTemplate($filepath)
         {
             $this->SetTemplate('master', $filepath);
         }
 
+        /**
+         * Render the final output
+         * @param bool $capture Whether to return or write final output
+         * @return string Final output
+         */
         public function Rend($capture=false)
         {
             if (empty($this->_templates['master']) && empty($this->_templates['page']))
@@ -285,6 +352,10 @@ namespace ATMF {
             else echo $output;
         }
 
+        /**
+         * Load the ATMF engine dependencies
+         * @param mixed $folder Folder path with .PHP dependencies
+         */
         public static function LoadDependencies($folder='')
         {
             if (in_array(substr($folder, strlen($folder)-1), ['/', '\\']))
