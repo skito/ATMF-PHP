@@ -26,6 +26,7 @@ namespace ATMF {
         private $_disableParsing = 0;
         private $_openBlocks = 0;
         private $_indexEach = [];
+        private $_lastBlockID = 0;
 
         public static $latestInstance = null;
 
@@ -92,7 +93,15 @@ namespace ATMF {
                 if ($this->ParsingIsEnabled())
                 {
                     $doParseBlock = false;
-                    $blockID = base64_encode($blockStr);
+                    
+                    // Good idea for caching tag outputs
+                    // However this is causing issues with #if #else functions
+                    // Needs additional work
+                    // $blockID = base64_encode($blockStr);
+
+                    // No caching - every block, on it's own ID
+                    $blockID = $this->CreateBlockID();
+
                     if (!isset($this->_tags[$blockID]))
                     {
                         $tag = Tag::ParseStr($blockStr);
@@ -222,6 +231,11 @@ namespace ATMF {
             return $str;
         }
 
+        private function CreateBlockID() {
+            $this->_lastBlockID++;
+            return $this->_lastBlockID;
+        }
+
         private function ParsingIsEnabled()
         {
             return $this->_disableParsing == 0;
@@ -339,7 +353,7 @@ namespace ATMF {
          */
         public function DiscoverTemplates($filepath=null, $extensions=['tpl', 'html'])
         {
-            if (!is_array[$extensions]) 
+            if (!is_array[$extensions])
                 $extensions = [$extensions];
 
             $this->_templateDiscoveryPath = $filepath;
