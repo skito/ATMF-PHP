@@ -2,7 +2,7 @@
 
 __PHP support for ATMF (Advanced-Template-Markup-Format)__
 
-![GitHub release (latest by date)](https://img.shields.io/badge/php-%3E%3D5.5-blue)
+![GitHub release (latest by date)](https://img.shields.io/badge/php-%3E%3D7-blue)
 ![GitHub release (latest by date)](https://img.shields.io/badge/production-ready-green)
 ![GitHub release (latest by date)](https://img.shields.io/badge/coverage-100%25-green)
 
