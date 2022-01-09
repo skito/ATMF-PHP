@@ -82,7 +82,7 @@ class Functions
                     $collection = trim($operator == 'as' ? $args[0] : $args[2]);
                     $item = trim($operator == 'as' ? $args[2] : $args[0]);
 
-                    if (strlen($collection) < 2 || strlen($collection) < 2) die('ATMF Error: Wrong #each syntax!');
+                    if (strlen($collection) < 2 || strlen($item) < 2) die('ATMF Error: Wrong #each syntax!');
 
                     return '<%:block_start%><%:each%><%:'.substr($collection, 1).':'.substr($item, 1).'%>';
                 }
@@ -98,7 +98,7 @@ class Functions
                 $name = isset($args[0]) ? $args[0] : '';
                 if ($name != '')
                 {
-                    $sender->setTemplate($name, $value);
+                    $sender->SetTemplate($name, $value);
                     return true;
                 }
                 else return false;

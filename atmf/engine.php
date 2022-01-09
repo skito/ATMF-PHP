@@ -19,6 +19,8 @@ namespace ATMF {
         private $_templates = [];
         private $_cultureFolder = 'culture';
         private $_currentCulture = 'en-US';
+        private $_templateDiscoveryPath = null;
+        private $_templateDiscoveryExtensions = ['ptl', 'html'];
 
 		private $_tags = [];
         private $_disableParsing = 0;
@@ -294,7 +296,18 @@ namespace ATMF {
         {
             if (!empty( $this->_templates[$name]))
                 return $this->_templates[$name];
-            else return false;
+            else {
+                if ($this->_templateDiscoveryPath != null) {
+                    foreach($this->_templateDiscoveryExtensions as $ext) {
+                        $filepath = $this->_templateDiscoveryPath.'/'.$name.'.'.$ext;
+                        if (file_exists($filepath)) {
+                            $this->_templates[$name] = $filepath;
+                            return $filepath;
+                        }
+                    }
+                }
+                return false;
+            }
         }
 
         /**
@@ -317,6 +330,20 @@ namespace ATMF {
         public function SetMasterTemplate($filepath)
         {
             $this->SetTemplate('master', $filepath);
+        }
+
+        /**
+         * Set folder to auto discover templates
+         * @param mixed $filepath Templates folder repository
+         * @param mixed $extensions Extensions to loo for
+         */
+        public function DiscoverTemplates($filepath=null, $extensions=['tpl', 'html'])
+        {
+            if (!is_array[$extensions]) 
+                $extensions = [$extensions];
+
+            $this->_templateDiscoveryPath = $filepath;
+            $this->_templateDiscoveryExtensions = $extensions;
         }
 
         /**
