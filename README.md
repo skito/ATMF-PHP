@@ -58,6 +58,7 @@ __Configuration Options__
 ```php
 $atmf->SetCultureFolder(__DIR__.'/culture'); //Default: culture
 $atmf->SetCulture('bg-BG'); // Default: en-US
+$atmf->DiscoverTemplates(__DIR__.'/templates'); // Default: No auto discovery
 $atmf->allowGlobals = true; // Default: FALSE. Be careful with that if set it to TRUE!
 ```
 
