@@ -19,8 +19,8 @@ namespace ATMF {
         private $_templates = [];
         private $_cultureFolder = 'culture';
         private $_currentCulture = 'en-US';
-        private $_templateDiscoveryPath = null;
-        private $_templateDiscoveryExtensions = ['ptl', 'html'];
+        private $_templateDiscoveryPath = 'templates';
+        private $_templateDiscoveryExtensions = ['tpl', 'html'];
 
 		private $_tags = [];
         private $_disableParsing = 0;
@@ -93,7 +93,7 @@ namespace ATMF {
                 if ($this->ParsingIsEnabled())
                 {
                     $doParseBlock = false;
-                    
+
                     // Good idea for caching tag outputs
                     // However this is causing issues with #if #else functions
                     // Needs additional work
@@ -311,39 +311,31 @@ namespace ATMF {
             if (!empty( $this->_templates[$name]))
                 return $this->_templates[$name];
             else {
-                if ($this->_templateDiscoveryPath != null) {
-                    foreach($this->_templateDiscoveryExtensions as $ext) {
-                        $filepath = $this->_templateDiscoveryPath.'/'.$name.'.'.$ext;
-                        if (file_exists($filepath)) {
-                            $this->_templates[$name] = $filepath;
-                            return $filepath;
-                        }
-                    }
-                }
-                return false;
+                if ($this->DiscoverTemplate($name))
+                    return $this->_templates[$name];
             }
+
+            return false;
         }
+
 
         /**
          * Set template
          * @param mixed $name Name of the template
-         * @param mixed $filepath Template file path
+         * @param mixed $src Template source
          */
-        public function SetTemplate($name, $filepath)
+        public function SetTemplate($name, $src)
         {
-            if ($filepath != null && !file_exists($filepath))
-                die('ATMF Error: Template '.$name.' doesn\'t exists!');
-
-            $this->_templates[$name] = $filepath;
+            $this->_templates[$name] = $src;
         }
 
         /**
          * Set master template
-         * @param mixed $filepath Template file path
+         * @param mixed $src Template source
          */
-        public function SetMasterTemplate($filepath)
+        public function SetMasterTemplate($src)
         {
-            $this->SetTemplate('master', $filepath);
+            $this->SetTemplate('master', $src);
         }
 
         /**
@@ -351,13 +343,28 @@ namespace ATMF {
          * @param mixed $filepath Templates folder repository
          * @param mixed $extensions Extensions to loo for
          */
-        public function DiscoverTemplates($filepath=null, $extensions=['tpl', 'html'])
+        public function SetTemplateDiscoveryPath($filepath=null, $extensions=['tpl', 'html'])
         {
-            if (!is_array[$extensions])
+            if (!is_array([$extensions]))
                 $extensions = [$extensions];
 
             $this->_templateDiscoveryPath = $filepath;
             $this->_templateDiscoveryExtensions = $extensions;
+        }
+
+        public function DiscoverTemplate($name)
+        {
+            if ($this->_templateDiscoveryPath != null) {
+                foreach($this->_templateDiscoveryExtensions as $ext) {
+                    $filepath = $this->_templateDiscoveryPath.'/'.$name.'.'.$ext;
+                    if (file_exists($filepath)) {
+                        $this->_templates[$name] = \file_get_contents($filepath);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         /**
@@ -367,13 +374,14 @@ namespace ATMF {
          */
         public function Rend($capture=false)
         {
-            if (empty($this->_templates['master']) && empty($this->_templates['page']))
+            $output = $this->GetTemplate('master') ?? $this->GetTemplate('page');
+            if (!$output) {
                 die('ATMF Warning: Rend failed! Page and/or master template must be set!'."\r\n");
+            }
 
-            $masterTmp = !empty($this->_templates['master']) ? $this->_templates['master'] : $this->_templates['page'];
-            $output = file_get_contents($masterTmp);
+            echo 'dsds';
+            $output = ''.$output;
             $redundancy = 0;
-
             while(
                 substr_count($output, '{$') > substr_count($output, '\{$') ||
                 substr_count($output, '{@') > substr_count($output, '\{@') ||
