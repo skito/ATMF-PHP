@@ -2,7 +2,7 @@
 
 /**
  * ATMF Engine. Part of ATMF core.
- * @version: ATMF-PHP Engine 1.0
+ * @version: ATMF-PHP Engine 1.1
  * @license: Apache-2.0 License
  * @repository: https://github.com/skito/ATMF-PHP
  */
@@ -48,8 +48,10 @@ namespace ATMF {
         {
             // ATMF Tags
             $startPos = -1;
-            while($startPos = strpos($str, '{', $startPos + 1))
+
+            while(($startPos = strpos($str, '{', $startPos + 1)) !== FALSE)
             {
+
                 $endPos = $startPos;
 
                 // Skip escaping with backslash
@@ -113,8 +115,9 @@ namespace ATMF {
                     }
                     else $doParseBlock = true;
 
-                    if ($doParseBlock)
+                    if ($doParseBlock) {
                         $str = substr($str, 0, $startPos).'<%'.$blockID.'%>'.substr($str, $endPos + 1);
+                    }
                 }
 
                 // Until the end of the last #each
@@ -358,7 +361,7 @@ namespace ATMF {
                 foreach($this->_templateDiscoveryExtensions as $ext) {
                     $filepath = $this->_templateDiscoveryPath.'/'.$name.'.'.$ext;
                     if (file_exists($filepath)) {
-                        $this->_templates[$name] = \file_get_contents($filepath);
+                        $this->_templates[$name] = file_get_contents($filepath);
                         return true;
                     }
                 }
@@ -374,12 +377,12 @@ namespace ATMF {
          */
         public function Rend($capture=false)
         {
-            $output = $this->GetTemplate('master') ?? $this->GetTemplate('page');
+            $output = $this->GetTemplate('master');
+            if (!$output) $output = $this->GetTemplate('page');
             if (!$output) {
                 die('ATMF Warning: Rend failed! Page and/or master template must be set!'."\r\n");
             }
 
-            echo 'dsds';
             $output = ''.$output;
             $redundancy = 0;
             while(
