@@ -20,7 +20,7 @@ class Functions
             case '#template':
                 $name = isset($args[0]) ? $args[0] : '';
                 $template = $sender->GetTemplate($name);
-                return (string)$template;
+                return $template;
             case '#use':
                 $path = isset($args[0]) ? $args[0] : '';
                 $operator = isset($args[1]) ? $args[1]: 'as';
