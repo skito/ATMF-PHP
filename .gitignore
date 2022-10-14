@@ -6,3 +6,5 @@ error_log
 *.user
 .vs/ATMF/DesignTimeBuild/.dtbcache.v2
 .vs/ATMF/v16/.suo
+.vs
+.vscode
