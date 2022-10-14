@@ -28,8 +28,8 @@ __Global selector ``__()``__
 <?php
 
 // Assign some templates
-__('#template master', 'templates/master.html');
-__('#template page', 'templates/template.html');
+__('#template master', file_get_contents('./templates/master.html'));
+__('#template page', file_get_contents('./templates/template.html'));
 
 // Assign variables
 __('$fullname', 'Advanced-Template-Markup-Format');
@@ -44,7 +44,7 @@ __Native__
 <?php
 
 $atmf->vars['slogan'] = 'Cultural made easy!';
-$atmf->SetTemplate('header', 'templates/header.html');
+$atmf->SetTemplate('header', file_get_contents('./templates/header.html'));
 ```
 
 __Read variables and translations__
@@ -58,7 +58,7 @@ __Configuration Options__
 ```php
 $atmf->SetCultureFolder(__DIR__.'/culture'); //Default: culture
 $atmf->SetCulture('bg-BG'); // Default: en-US
-$atmf->DiscoverTemplates(__DIR__.'/templates'); // Default: No auto discovery
+$atmf->SetTemplateDiscoveryPath(__DIR__.'/templates'); // Default: No auto discovery
 $atmf->allowGlobals = true; // Default: FALSE. Be careful with that if set it to TRUE!
 ```
 
