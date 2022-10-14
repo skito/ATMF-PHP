@@ -60,10 +60,29 @@ class Variables
 
     public static function SelectQuery($collection, $selector, &$var)
     {
-        if (is_string($selector)) $selector = explode('.', $selector);
+        if (is_string($selector)) 
+            $selector = explode('.', $selector);
+
+        $firstSelector = $selector[0];
+
         if (count($selector) > 1)
         {
-            $newCollection = isset($collection[$selector[0]]) && is_array($collection[$selector[0]]) ? $collection[$selector[0]] : null;
+            $newCollection = null;
+
+            if ((
+                    is_array($collection) && 
+                    isset($collection[$firstSelector]) &&
+                    is_array($collection[$firstSelector]) || is_object($collection[$firstSelector])
+                ) ||
+                (
+                    is_object($collection) && 
+                    isset($collection->$firstSelector) &&
+                    is_array($collection->$firstSelector) || is_object($collection->$firstSelector)
+                ))
+            {
+                $newCollection = is_array($collection) ? $collection[$firstSelector] : $collection->$firstSelector;
+            }
+
             if ($newCollection != null)
             {
                 unset($selector[0]);
@@ -73,8 +92,19 @@ class Variables
         }
         else
         {
-            $var = $collection[$selector[0]] ?? '';
-            return isset($collection[$selector[0]]);
+            if (is_array($collection) && isset($collection[$firstSelector]))
+            {
+                $var = $collection[$firstSelector];
+                return true;
+            }
+            elseif (is_object($collection) && isset($collection->$firstSelector))
+            {
+                $var = $collection->$firstSelector;
+                return true;
+            }
+
+            $var = '';
+            return false;
         }
     }
 }
