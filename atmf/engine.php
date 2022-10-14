@@ -371,16 +371,38 @@ namespace ATMF {
         }
 
         /**
+         * Render specific template
+         * @param string $name Name of the template
+         * @param bool $capture Whether to return or write final output
+         * @return string Final output
+         */
+        public function RendTemplate($name, $capture=false)
+        {
+            return $this->Rend($capture, $name);
+        }
+
+        /**
          * Render the final output
          * @param bool $capture Whether to return or write final output
          * @return string Final output
          */
-        public function Rend($capture=false)
+        public function Rend($capture=false, $baseTemplate=null)
         {
-            $output = $this->GetTemplate('master');
-            if (!$output) $output = $this->GetTemplate('page');
-            if (!$output) {
-                die('ATMF Warning: Rend failed! Page and/or master template must be set!'."\r\n");
+            $output = '';
+            if ($baseTemplate != null)
+            {
+                $output = $this->GetTemplate($baseTemplate);
+                if (!$output) {
+                    die('ATMF Warning: Rend failed! Template "'.$baseTemplate.'" not found!'."\r\n");
+                }
+            }
+            else
+            {
+                $output = $this->GetTemplate('master');
+                if (!$output) $output = $this->GetTemplate('page');
+                if (!$output) {
+                    die('ATMF Warning: Rend failed! Page and/or master template must be set!'."\r\n");
+                }
             }
 
             $output = ''.$output;
