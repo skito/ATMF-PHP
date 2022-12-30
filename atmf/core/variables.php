@@ -63,6 +63,14 @@ class Variables
         if (is_string($selector)) 
             $selector = explode('.', $selector);
 
+            
+        $selectorStr = implode('.', $selector);
+        if (is_array($collection) && isset($collection[$selectorStr]))
+        {
+            $var = $collection[$selectorStr];
+            return true;
+        }
+
         $firstSelector = $selector[0];
 
         if (count($selector) > 1)
