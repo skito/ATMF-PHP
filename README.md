@@ -2,11 +2,11 @@
 
 __PHP support for ATMF (Advanced-Template-Markup-Format)__
 
-![GitHub release (latest by date)](https://img.shields.io/badge/php-%3E%3D7-blue)
-![GitHub release (latest by date)](https://img.shields.io/badge/production-ready-green)
-![GitHub release (latest by date)](https://img.shields.io/badge/coverage-100%25-green)
+![PHP7 or greater](https://img.shields.io/badge/php-%3E%3D7-blue)
+![Production ready](https://img.shields.io/badge/production-ready-green)
+![Coverage 100%](https://img.shields.io/badge/coverage-100%25-green)
 
-&nbsp;
+![Cover](cover.png)
  
 # More about ATMF
 Full specificaiton of the format is [available here](https://github.com/skito/ATMF)
