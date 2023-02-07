@@ -2,7 +2,7 @@
 
 /**
  * ATMF Engine. Part of ATMF core.
- * @version: ATMF-PHP Engine 1.1
+ * @version: ATMF-PHP Engine 1.2
  * @license: Apache-2.0 License
  * @repository: https://github.com/skito/ATMF-PHP
  */
@@ -303,10 +303,10 @@ namespace ATMF {
         {
             if ($this->_currentCulture != $culture)
             {
-                if (empty($culture) ||
+                /*if (empty($culture) ||
                     !file_exists($this->_cultureFolder) ||
                     !is_dir($this->_cultureFolder))
-                    die('ATMF Error: Culture '.$culture.' not found!');
+                    die('ATMF Error: Culture '.$culture.' not found!');*/
 
                 $this->_currentCulture = $culture;
                 Culture::ResetTranslations();
