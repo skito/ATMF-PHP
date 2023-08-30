@@ -80,12 +80,12 @@ class Variables
             if ((
                     is_array($collection) && 
                     isset($collection[$firstSelector]) &&
-                    is_array($collection[$firstSelector]) || is_object($collection[$firstSelector])
+                    (is_array($collection[$firstSelector]) || is_object($collection[$firstSelector]))
                 ) ||
                 (
                     is_object($collection) && 
                     isset($collection->$firstSelector) &&
-                    is_array($collection->$firstSelector) || is_object($collection->$firstSelector)
+                    (is_array($collection->$firstSelector) || is_object($collection->$firstSelector))
                 ))
             {
                 $newCollection = is_array($collection) ? $collection[$firstSelector] : $collection->$firstSelector;

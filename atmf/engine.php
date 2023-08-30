@@ -406,9 +406,10 @@ namespace ATMF {
          */
         public function Rend($capture=false, $baseTemplate=null)
         {
-            if (is_array($this->_callbacks['beforerend']))
+            $cbBeforeEnd = $this->_callbacks['beforerend'] ?? [];
+            if (is_array($cbBeforeEnd))
             {
-                foreach($this->_callbacks['beforerend'] as $callback)
+                foreach($cbBeforeEnd as $callback)
                 {
                     if (is_callable($callback))
                         $baseTemplate = call_user_func($callback, $baseTemplate, $capture);
@@ -450,9 +451,10 @@ namespace ATMF {
             // Replace escaped tags
             $output = str_replace(['\{$', '\{@', '\{#', '\{/'], ['{$', '{@', '{#', '{/'], $output);
 
-            if (is_array($this->_callbacks['afterrend']))
+            $cbAfterEnd = $this->_callbacks['afterend'] ?? [];
+            if (is_array($cbAfterEnd))
             {
-                foreach($this->_callbacks['afterrend'] as $callback)
+                foreach($cbAfterEnd as $callback)
                 {
                     if (is_callable($callback))
                         $output = call_user_func($callback, $output, $baseTemplate, $capture);
