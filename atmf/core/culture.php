@@ -14,14 +14,14 @@ class Culture
     static public $settings = null;
     static private $_cachedTranslations = [];
     static private $_aliases = [];
+    static private $_loadedResources = [];
 
     public static function ProcessTag($sender, $tagName, $args)
     {
         $keypath = substr($tagName, 1);
         $realKeypath = $keypath;
 
-        $cultureResources = self::$_cachedTranslations;
-        if (!isset($cultureResources[$keypath]))
+        if (!isset(self::$_cachedTranslations[$keypath]))
         {
             $hasAnAlias = false;
             foreach(self::$_aliases as $alias => $path)
@@ -36,7 +36,7 @@ class Culture
                         $hasAnAlias = true;
                     }
                 }
-                elseif (isset($cultureResources[$path.'.'.$keypath]))
+                elseif (isset(self::$_cachedTranslations[$path.'.'.$keypath]))
                 {
                     $realKeypath = $path.'.'.$keypath;
                     $hasAnAlias = true;
@@ -46,26 +46,29 @@ class Culture
             }
 
             if (!$hasAnAlias)
-            {
-                $cultureResources = array_merge($cultureResources, self::ResolveCultureResource($sender, $keypath));
-                self::$_cachedTranslations = $cultureResources;
-            }
+                self::LoadResource($sender, $keypath);
         }
 
-        if (!isset($cultureResources[$realKeypath])) return null;
+        if (!isset(self::$_cachedTranslations[$realKeypath])) return null;
 
-        $resource = $cultureResources[$realKeypath];
+        $resource = self::$_cachedTranslations[$realKeypath];
         $translation = null;
         if (is_array($resource))
         {
             $plural = isset($args[0]) && is_numeric($args[0]) && $args[0] != 1;
-            $translation = !$plural && isset($resource[1]) ? $resource[1] : $resource[0];
+            $translation = !$plural && isset($resource[1]) ? $resource[1] : ($resource[0] ?? null);
         }
         else $translation = $resource;
 
-        foreach($args as $key => $arg)
+        if (!empty($args))
         {
-            $translation = str_replace('$'.$key, $arg, $translation);
+            // strtr() replaces $10 before $1 and never touches the inserted values
+            $placeholders = [];
+            foreach($args as $key => $arg)
+            {
+                $placeholders['$'.$key] = Tag::ToString($arg);
+            }
+            $translation = strtr(Tag::ToString($translation), $placeholders);
         }
 
         return $translation;
@@ -81,61 +84,69 @@ class Culture
     public static function AddAlias($sender, $alias, $path)
     {
         self::$_aliases[$alias] = $path;
-        self::$_cachedTranslations = array_merge(self::$_cachedTranslations, self::ResolveCultureResource($sender, $path));
+        self::LoadResource($sender, $path);
     }
 
     public static function ResetTranslations()
     {
         self::$_cachedTranslations = [];
         self::$_aliases = [];
+        self::$_loadedResources = [];
     }
 
+    /**
+     * Load the resource file of a key once, even if the file or the key doesn't exist
+     * @param mixed $sender ATMF engine
+     * @param string $keyname Resource key, e.g. page.title
+     */
+    private static function LoadResource($sender, $keyname)
+    {
+        $resourcePath = self::ResourcePath($keyname);
+        if (isset(self::$_loadedResources[$resourcePath])) return;
+
+        self::$_loadedResources[$resourcePath] = true;
+
+        // Translations already in place (e.g. set with __('@page.title', ...)) are kept
+        self::$_cachedTranslations += self::ResolveCultureResource($sender, $keyname);
+    }
+
+    /**
+     * Get resource file path of a key, e.g. header/master for header/master.title
+     * @param string $keyname Resource key
+     * @return string Path relative to the culture folder, without extension
+     */
+    private static function ResourcePath($keyname)
+    {
+        $keypath = '';
+        $divider = '';
+        foreach(explode('/', $keyname) as $namespace)
+        {
+            $keypath .= $divider.explode('.', $namespace)[0];
+            $divider = '/';
+        }
+
+        return $keypath;
+    }
 
     public static function ResolveCultureResource($sender, $keyname, $locale=null)
     {
 
         self::LoadSettings($sender);
-        
+
         $cultureResources = [];
-        $localePath = $locale ?? $sender->GetCulture();
+        $localePath = (string)($locale ?? $sender->GetCulture());
 
         $localeData = self::$settings['locale'] ?? [];
         $default = self::$settings['default'] ?? '';
         $defaultLang = $localeData[$default] ?? [];
-        $langCode = isset($localeData[$localePath]) ? $localePath : $default;
+        // Without locale settings (culture.json), the culture folder is used as it is
+        $langCode = isset($localeData[$localePath]) || empty($localeData) ? $localePath : $default;
         $lang = $localeData[$localePath] ?? $defaultLang;
         if (isset($lang['extend']) && isset($localeData[$lang['extend']]))
             $cultureResources = self::ResolveCultureResource($sender, $keyname, $lang['extend']);
 
-        $path = $sender->GetCultureFolder().'/'.$langCode;
-        $keypath = '';
-        $keynameNS = explode('/', $keyname);
-        $divider = '';
-        foreach($keynameNS as $namespace)
-        {
-            if (strpos($namespace, '.') !== false)
-            {
-                $nsParts = explode('.', $namespace);
-                $keypath .= $divider.$nsParts[0];
-            }
-            else $keypath .= $divider.$namespace;
-            $divider = '/';
-        }
-        $path .= '/'.$keypath;
-
-
-        
-
-        $translations = [];
-        if (file_exists($path.'.cache.php')) {
-            if (filemtime($path.'.cache.php') >= filemtime($path.'.json')) {
-                $translations = include($path.'.cache.php');
-            }
-            else $translations = self::TranslationCache($path);
-        }
-        elseif (file_exists($path.'.json')) {
-            $translations = self::TranslationCache($path);
-        }
+        $keypath = self::ResourcePath($keyname);
+        $translations = self::LoadJson($sender->GetCultureFolder().'/'.$langCode.'/'.$keypath) ?? [];
 
         foreach($translations as $key => $value)
         {
@@ -145,14 +156,44 @@ class Culture
         return $cultureResources;
     }
 
+    /**
+     * Load JSON file, through its PHP cache
+     * @param string $path File path without extension
+     * @return array|null NULL if the file doesn't exist
+     */
+    private static function LoadJson($path)
+    {
+        $jsonFile = $path.'.json';
+        $cacheFile = $path.'.cache.php';
+        $hasJson = is_file($jsonFile);
+
+        if (is_file($cacheFile) && (!$hasJson || filemtime($cacheFile) >= filemtime($jsonFile)))
+        {
+            $data = include($cacheFile);
+            if (is_array($data)) return $data;
+        }
+
+        return $hasJson ? self::TranslationCache($path) : null;
+    }
+
     private static function TranslationCache($path)
     {
         $translations = json_decode(file_get_contents($path.'.json'));
-        $phpCache = '<?php'."\n".'return '.trim(self::Export($translations), ", \n").";";
-        $translations = json_decode(file_get_contents($path.'.json'), true);
-        file_put_contents($path.'.cache.php', $phpCache);
+        if (!is_array($translations) && !is_object($translations)) return [];
 
-        return include($path . '.cache.php');
+        $cacheFile = $path.'.cache.php';
+        $phpCache = '<?php'."\n".'return '.trim(self::Export($translations), ", \n").";";
+
+        // Write through a temporary file, so concurrent requests never include a partial cache
+        $tmpFile = $cacheFile.'.'.uniqid('', true).'.tmp';
+        if (@file_put_contents($tmpFile, $phpCache) !== false && @rename($tmpFile, $cacheFile))
+        {
+            if (function_exists('opcache_invalidate')) @opcache_invalidate($cacheFile, true);
+        }
+        else @unlink($tmpFile);
+
+        // Same values as the cache would return, even if it can't be written
+        return self::Normalize($translations);
     }
 
     private static function Export($value, $level=0) {
@@ -162,29 +203,32 @@ class Culture
             $phpCache .= "[\n";
             foreach($value as $k => $v) {
                 $phpCache .= $prefix;
-                $phpCache .= is_object($value) ? "'".$k."' => ".self::Export($v, $level + 1) : self::Export($v, $level + 1);
+                $phpCache .= is_object($value) ? var_export((string)$k, true)." => ".self::Export($v, $level + 1) : self::Export($v, $level + 1);
             }
             $phpCache .= $prefix."],\n";
         }
-        else $phpCache .= "'".str_replace("'", "\\'", $value)."',\n";
+        else $phpCache .= var_export((string)$value, true).",\n";
 
         return $phpCache;
     }
 
-    public static function LoadSettings($sender) 
+    private static function Normalize($value) {
+        if (!is_array($value) && !is_object($value))
+            return (string)$value;
+
+        $result = [];
+        foreach($value as $k => $v) {
+            $result[$k] = self::Normalize($v);
+        }
+
+        return $result;
+    }
+
+    public static function LoadSettings($sender)
     {
-        if (self::$settings != null) 
+        if (self::$settings !== null)
             return;
 
-        $path = $sender->GetCultureFolder() . '/culture';
-        if (file_exists($path.'.cache.php')) {
-            if (filemtime($path.'.cache.php') >= filemtime($path.'.json')) {
-                self::$settings = include($path.'.cache.php');
-            }
-            else self::$settings = self::TranslationCache($path);
-        }
-        elseif (file_exists($path.'.json')) {
-            self::$settings = self::TranslationCache($path);
-        }
+        self::$settings = self::LoadJson($sender->GetCultureFolder() . '/culture');
     }
 }

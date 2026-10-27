@@ -22,12 +22,6 @@ namespace ATMF {
         private $_templateDiscoveryPath = 'templates';
         private $_templateDiscoveryExtensions = ['tpl', 'html'];
 
-		private $_tags = [];
-        private $_disableParsing = 0;
-        private $_openBlocks = 0;
-        private $_indexEach = [];
-        private $_lastBlockID = 0;
-
         private $_callbacks = [];
 
         public static $latestInstance = null;
@@ -43,140 +37,104 @@ namespace ATMF {
 
         /**
          * Bind event callback
-		 * @param string $event - Event to bind for
+         * @param string $event - Event to bind for
          * @param callable $callback - Callable object
-		 * @return string Modified output depend on the event and input params
+         * @return string Modified output depend on the event and input params
          */
         public function Bind($event, $callback)
         {
-            if (!is_array($this->_callbacks[$event]))
+            if (!isset($this->_callbacks[$event]) || !is_array($this->_callbacks[$event]))
                 $this->_callbacks[$event] = [];
-            
+
             $this->_callbacks[$event][] = $callback;
         }
 
-		/**
-		 * Parse ATMF markup
-		 * @param string $str ATMF markup (including mustage quotes)
-		 * @return string Processed markup
-		 */
-		public function ParseMarkup($str)
+        /**
+         * Parse ATMF markup
+         * @param string $str ATMF markup (including mustage quotes)
+         * @return string Processed markup
+         */
+        public function ParseMarkup($str)
         {
+            $str = (string)$str;
+
             // ATMF Tags
+            $parts = [];
+            $tags = [];
+            $copiedPos = 0;
+            $openBlocks = 0;
+            $disableParsing = 0;
+            $indexEach = [];
             $startPos = -1;
 
             while(($startPos = strpos($str, '{', $startPos + 1)) !== FALSE)
             {
-
-                $endPos = $startPos;
-
                 // Skip escaping with backslash
-                if ($startPos > 0 && substr($str, $startPos-1, 2) == '\\{')
+                if ($startPos > 0 && $str[$startPos - 1] == '\\')
                     continue;
 
-                $blockStr = '';
-                $blockMatch = false;
-                while($endPos = strpos($str, '}', $endPos + 1))
+                $endPos = $this->FindClosingBracket($str, $startPos);
+                if ($endPos === false)
                 {
-                    $blockStr = substr($str, $startPos, $endPos - $startPos + 1);
-                    if (substr_count($blockStr, '{') == substr_count($blockStr, '}'))
-                    {
-                        $blockMatch = true;
-                        break;
-                    }
+                    // Lone bracket in plain text (e.g. inline script) is not a tag
+                    if (in_array(substr($str, $startPos + 1, 1), ['$', '@', '#', '/'], true))
+                        die('ATMF Error: Closing curly bracket expected!');
+                    continue;
                 }
-
-                if (!$blockMatch) die('ATMF Error: Closing curly bracket expected!');
-                elseif (strlen($blockStr) < 4) continue; // die('ATMF Error: Empty curly brackets detected!');
+                elseif ($endPos - $startPos < 3) continue; // die('ATMF Error: Empty curly brackets detected!');
 
                 // strip off top level brackets
-                $blockStr = substr($blockStr, 1, strlen($blockStr) - 2);
+                $blockStr = substr($str, $startPos + 1, $endPos - $startPos - 1);
 
-
-				// Parse special functions
+                // Parse special functions
                 if (strpos($blockStr, '#each') === 0 || strpos($blockStr, '#if') === 0)
-                    $this->_openBlocks++;
+                    $openBlocks++;
 
                 if (strpos($blockStr, '#end') === 0 && strpos($blockStr, '#endlabel') !== 0)
                 {
-                    if (isset($this->_indexEach[$this->_openBlocks]))
+                    if (isset($indexEach[$openBlocks]))
                     {
-                        $this->EnableParsing();
-                        unset($this->_indexEach[$this->_openBlocks]);
+                        if ($disableParsing > 0) $disableParsing--;
+                        unset($indexEach[$openBlocks]);
                     }
-                    $this->_openBlocks--;
+                    $openBlocks--;
                 }
 
                 // Parse markup
-                if ($this->ParsingIsEnabled())
+                if ($disableParsing == 0)
                 {
-                    $doParseBlock = false;
-
-                    // Good idea for caching tag outputs
-                    // However this is causing issues with #if #else functions
-                    // Needs additional work
-                    // $blockID = base64_encode($blockStr);
-
-                    // No caching - every block, on it's own ID
-                    $blockID = $this->CreateBlockID();
-
-                    if (!isset($this->_tags[$blockID]))
+                    $tag = Tag::ParseStr($blockStr);
+                    if ($tag != null)
                     {
-                        $tag = Tag::ParseStr($blockStr);
-                        if ($tag != null)
-                        {
-                            $this->_tags[$blockID] = $tag;
-                            $doParseBlock = true;
-                        }
-                    }
-                    else $doParseBlock = true;
-
-                    if ($doParseBlock) {
-                        $str = substr($str, 0, $startPos).'<%'.$blockID.'%>'.substr($str, $endPos + 1);
+                        // Tags are built after the scan, in order of appearance
+                        $parts[] = substr($str, $copiedPos, $startPos - $copiedPos);
+                        $tags[count($parts)] = $tag;
+                        $parts[] = '';
+                        $copiedPos = $endPos + 1;
+                        $startPos = $endPos;
                     }
                 }
 
                 // Until the end of the last #each
                 if (strpos($blockStr, '#each') === 0)
                 {
-                    $this->DisableParsing();
-                    $this->_indexEach[$this->_openBlocks] = true;
+                    $disableParsing++;
+                    $indexEach[$openBlocks] = true;
                 }
             }
 
-            foreach($this->_tags as $id => $tag)
+            if (!empty($tags))
             {
-                if (strpos($str, '<%'.$id.'%>') !== false) 
-                    $str = str_replace('<%'.$id.'%>', (string)$tag->Build($this), $str);
+                $parts[] = substr($str, $copiedPos);
+                foreach($tags as $index => $tag)
+                {
+                    $parts[$index] = Tag::ToString($tag->Build($this));
+                }
+                $str = implode('', $parts);
             }
 
             // IF blocks, resulted by ATMF operations
-            $startPos = -1;
-            while($startPos = strpos($str, '<%:block_start%>', $startPos + 1))
-            {
-                $endPos = $startPos;
-                $blockStr = '';
-                $blockMatch = false;
-                while($endPos = strpos($str, '<%:block_end%>', $endPos + 1))
-                {
-                    $blockStr = substr($str, $startPos, $endPos - $startPos + 14);
-                    if (substr_count($blockStr, '<%:block_start%>') == substr_count($blockStr, '<%:block_end%>'))
-                    {
-                        $blockMatch = true;
-                        break;
-                    }
-
-                }
-
-                if (!$blockMatch) 
-                    die('ATMF Error: Closing function block expected!');
-                
-
-                $str = substr($str, 0, $startPos).$this->ParseBlocks($blockStr).substr($str, $endPos + 14);
-                $startPos -= 1;
-            }
-
-            return $str;
+            return $this->ResolveBlocks($str);
         }
 
         /**
@@ -204,12 +162,12 @@ namespace ATMF {
                     $item = $eachArgs[1];
 
                     $collectionArr = Variables::Select($this, $collection);
-                    if (is_array($collectionArr))
+                    if (is_array($collectionArr) || $collectionArr instanceof \Traversable)
                     {
                         foreach($collectionArr as $row)
                         {
                             $this->eVars[] = [$item => $row];
-                            $resultStr .= $this->ParseMarkup($str);
+                            $resultStr .= $this->ParseNestedMarkup($str);
 
                             if (count($this->eVars) > 0)
                                 array_pop($this->eVars);
@@ -223,6 +181,121 @@ namespace ATMF {
 
 
             return '';
+        }
+
+        /**
+         * Resolve the blocks resulted by #if, #else, #each and #label functions
+         * @param string $str Markup with tags already built
+         * @return string Processed markup
+         */
+        private function ResolveBlocks($str)
+        {
+            $startPos = strpos($str, '<%:block_start%>');
+            if ($startPos === false) return $str;
+
+            $resultStr = '';
+            $copiedPos = 0;
+            while($startPos !== false)
+            {
+                $endPos = $this->FindBlockEnd($str, $startPos);
+                if ($endPos === false)
+                    die('ATMF Error: Closing function block expected!');
+
+                $blockStr = substr($str, $startPos, $endPos - $startPos + 14);
+                $resultStr .= substr($str, $copiedPos, $startPos - $copiedPos);
+
+                // Visible blocks may contain nested blocks
+                if (strpos($blockStr, '<%:block_start%><%:show%>') === 0)
+                    $resultStr .= $this->ResolveBlocks((string)$this->ParseBlocks($blockStr));
+                else
+                    $resultStr .= $this->ParseBlocks($blockStr);
+
+                $copiedPos = $endPos + 14;
+                $startPos = strpos($str, '<%:block_start%>', $copiedPos);
+            }
+
+            return $resultStr.substr($str, $copiedPos);
+        }
+
+        /**
+         * Find the end of a block, including the nested ones
+         * @return int|false Position of the matching <%:block_end%>. FALSE if not found.
+         */
+        private function FindBlockEnd($str, $startPos)
+        {
+            $depth = 1;
+            $nextStart = strpos($str, '<%:block_start%>', $startPos + 16);
+            $nextEnd = strpos($str, '<%:block_end%>', $startPos + 16);
+            while($nextEnd !== false)
+            {
+                if ($nextStart !== false && $nextStart < $nextEnd)
+                {
+                    $depth++;
+                    $nextStart = strpos($str, '<%:block_start%>', $nextStart + 16);
+                }
+                else
+                {
+                    if (--$depth == 0) return $nextEnd;
+                    $nextEnd = strpos($str, '<%:block_end%>', $nextEnd + 14);
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Find the closing curly bracket, including the nested ones
+         * @return int|false Position of the matching bracket. FALSE if not found.
+         */
+        private function FindClosingBracket($str, $startPos)
+        {
+            $depth = 0;
+            $length = strlen($str);
+            $pos = $startPos;
+            while(($pos += strcspn($str, '{}', $pos)) < $length)
+            {
+                if ($str[$pos] == '{') $depth++;
+                elseif (--$depth == 0) return $pos;
+                $pos++;
+            }
+
+            return false;
+        }
+
+        /**
+         * Parse markup resulted inside #each (e.g. by #template), while the loop variables are available
+         * @param string $str ATMF markup
+         * @return string Processed markup
+         */
+        private function ParseNestedMarkup($str)
+        {
+            $str = $this->ParseMarkup($str);
+            for($i = 0; $i < $this->redundancyLimit && $this->HasMarkup($str); $i++)
+            {
+                $parsed = $this->ParseMarkup($str);
+                if ($parsed === $str) break;
+                $str = $parsed;
+            }
+
+            return $str;
+        }
+
+        /**
+         * Check for ATMF tags which are not escaped
+         * @param string $str Markup to check
+         * @return bool
+         */
+        private function HasMarkup($str)
+        {
+            if (strpos($str, '{') === false) return false;
+
+            foreach(['{$', '{@', '{#', '{/'] as $tagStart)
+            {
+                if (substr_count($str, $tagStart) > substr_count($str, '\\'.$tagStart))
+                    return true;
+            }
+
+            return false;
         }
 
         /**
@@ -247,30 +320,7 @@ namespace ATMF {
          */
         public function __escape($str)
         {
-            $str = str_replace('{', '&lcub;', $str);
-            $str = str_replace('}', '&rcub;', $str);
-            return $str;
-        }
-
-        private function CreateBlockID() {
-            $this->_lastBlockID++;
-            return $this->_lastBlockID;
-        }
-
-        private function ParsingIsEnabled()
-        {
-            return $this->_disableParsing == 0;
-        }
-
-        private function DisableParsing()
-        {
-            $this->_disableParsing++;
-        }
-
-        private function EnableParsing()
-        {
-            if ($this->_disableParsing > 0)
-                $this->_disableParsing -= 1;
+            return str_replace(['{', '}'], ['&lcub;', '&rcub;'], $str ?? '');
         }
 
         /**
@@ -307,12 +357,13 @@ namespace ATMF {
                     !file_exists($this->_cultureFolder) ||
                     !is_dir($this->_cultureFolder))
                     die('ATMF Error: Culture '.$culture.' not found!');*/
-                
+
                 \ATMF\Culture::LoadSettings($this);
                 $default = \ATMF\Culture::$settings['default'] ?? '';
                 $locales = \ATMF\Culture::$settings['locale'] ?? [];
-                
-                if (!isset($locales[$culture ?? '']))
+
+                // Without locale settings (culture.json), the culture is used as it is
+                if (!empty($locales) && !isset($locales[$culture ?? '']))
                     $culture = $default;
 
                 $this->_currentCulture = $culture;
@@ -328,6 +379,7 @@ namespace ATMF {
          */
         public function IsSupportedCulture(&$culture, $forceDefault=false)
         {
+            \ATMF\Culture::LoadSettings($this);
             $isSupported = isset(\ATMF\Culture::$settings['locale'][$culture]);
             if ($forceDefault && !$isSupported)
             {
@@ -391,7 +443,7 @@ namespace ATMF {
          */
         public function SetTemplateDiscoveryPath($filepath=null, $extensions=['tpl', 'html'])
         {
-            if (!is_array([$extensions]))
+            if (!is_array($extensions))
                 $extensions = [$extensions];
 
             $this->_templateDiscoveryPath = $filepath;
@@ -403,7 +455,7 @@ namespace ATMF {
             if ($this->_templateDiscoveryPath != null) {
                 foreach($this->_templateDiscoveryExtensions as $ext) {
                     $filepath = $this->_templateDiscoveryPath.'/'.$name.'.'.$ext;
-                    if (file_exists($filepath)) {
+                    if (is_file($filepath)) {
                         $this->_templates[$name] = file_get_contents($filepath);
                         return true;
                     }
@@ -459,16 +511,17 @@ namespace ATMF {
 
             $output = ''.$output;
             $redundancy = 0;
-            while(
-                substr_count($output, '{$') > substr_count($output, '\{$') ||
-                substr_count($output, '{@') > substr_count($output, '\{@') ||
-                substr_count($output, '{#') > substr_count($output, '\{#') ||
-                substr_count($output, '{/') > substr_count($output, '\{/'))
+            while($this->HasMarkup($output))
             {
-                if ($redundancy > 32)
+                if ($redundancy > $this->redundancyLimit)
                     die('ATMF Warning: Template redundancy limit has reached!'."\r\n");
 
-                $output = $this->ParseMarkup($output);
+                $parsed = $this->ParseMarkup($output);
+
+                // Nothing else can be resolved, e.g. "{$}" in plain text
+                if ($parsed === $output) break;
+
+                $output = $parsed;
                 $redundancy++;
             }
 
@@ -504,10 +557,7 @@ namespace ATMF {
                     if (!in_array($file, ['.','..']))
                     {
                         $path = $folder.DIRECTORY_SEPARATOR.$file;
-                        $pathLength = strlen($path);
-                        if (is_file($path) &&
-                            $pathLength > 4 &&
-                            stripos($path, '.php') == $pathLength - 4)
+                        if (is_file($path) && strtolower(substr($path, -4)) == '.php')
                         {
                             require_once($path);
                         }

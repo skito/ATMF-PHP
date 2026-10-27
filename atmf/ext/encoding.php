@@ -8,7 +8,7 @@ class JsonEncode implements \ATMF\Extension
     public function Get($args)
     {
         $obj = $args[0] ?? null;
-        $flags = explode('|', ($args[1] ?? ''));
+        $flags = explode('|', \ATMF\Tag::ToString($args[1] ?? ''));
 
         $jsonFlags = JSON_UNESCAPED_SLASHES;
 
@@ -43,7 +43,7 @@ class Base64Encode implements \ATMF\Extension
     public function __construct() {}
     public function Get($args)
     {
-        $str = $args[0] ?? '';
+        $str = \ATMF\Tag::ToString($args[0] ?? '');
         $trim = ($args[1] ?? '') == 'trim';
 
         if ($str != '')
@@ -61,7 +61,7 @@ class UrlEncode implements \ATMF\Extension
     public function __construct() {}
     public function Get($args)
     {
-        $str = $args[0] ?? '';
+        $str = \ATMF\Tag::ToString($args[0] ?? '');
         if ($str != '')
             return urlencode($str);
         else

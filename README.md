@@ -74,7 +74,7 @@ __Language resources__
 <h1>{@page.theFox 10 red}</h1>
 ```
 
-__Functions - #each #if #else #end__
+__Functions - #each #if #elseif #else #end__
 ```html
 <table style="min-width:500px" cellspacing="10">
     <tr style="font-weight:bold">
@@ -106,10 +106,38 @@ __Functions - #each #if #else #end__
 </table>
 ```
 
+__Conditions - #elseif, comparisons, ! && ||__
+```html
+{#if $cart.total >= 100}
+    Free shipping
+{#elseif $cart.total >= 50}
+    Shipping: {$reducedShippingPrice}
+{#else}
+    Shipping: {$shippingPrice}
+{#end}
+
+{#if $user.role == "admin" || $user.role == editor}...{#end}
+{#if $stock > 0 && !$discontinued}...{#end}
+{#if $items > 3}...{#end} <!-- Arrays are compared by the number of items -->
+{#if {/my-extension} != ""}...{#end}
+```
+Supported operators are ``==``, ``!=``, ``>``, ``<``, ``>=`` and ``<=``. Operands can be variables, language resources, extensions, ``{...}`` blocks, numbers, ``true``, ``false``, ``null`` and text. Use quotes for text with spaces or special characters. ``&&`` takes precedence over ``||``. Operands without ``&&`` or ``||`` between them are joined with ``&&``.
+
 __Extensions__
 ```html
 <h1>Today date is {/date "M d, Y"}</h1>
 ```
+
+__Default values with ??__
+```html
+<h1>{@welcome ?? Welcome}</h1>
+<span>{$totalSum ?? 5}</span>
+<div>{/my-extension ?? "No results"}</div>
+<div>{$nickname ?? $firstName ?? "Guest"}</div>
+<div>{$title ?? "Dear " $firstName}</div>
+<div>{$question "??"}</div> <!-- Quotes escape the operator -->
+```
+The default is used when the value on the left renders empty - not set, ``null``, empty string, ``false`` or empty array. Zero is a value. Everything left of ``??`` is the value, including the appended arguments. Everything right of it is the default, appended the same way. Use ``{...}`` to apply a default to a nested tag only, e.g. ``{/upper {$name ?? "guest"}}``.
 
 __Escaping with backslash__
 ```html

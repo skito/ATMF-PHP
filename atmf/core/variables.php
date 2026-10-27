@@ -15,15 +15,17 @@ class Variables
     {
         $varname = substr($tagName, 1);
         $str = self::Select($sender, $varname);
+        if (empty($args)) return $str;
 
+        $str = Tag::ToString($str);
         foreach($args as $arg)
         {
-            if (substr($arg, 0, 1) == '$')
+            if (is_string($arg) && substr($arg, 0, 1) == '$')
             {
                 $varname = substr($arg, 1);
-                $str .= self::Select($sender, $varname);
+                $str .= Tag::ToString(self::Select($sender, $varname));
             }
-            else $str .= $arg;
+            else $str .= Tag::ToString($arg);
         }
 
         return $str;
@@ -60,59 +62,61 @@ class Variables
 
     public static function SelectQuery($collection, $selector, &$var)
     {
-        if (is_string($selector)) 
+        if (is_string($selector))
             $selector = explode('.', $selector);
 
-            
-        $selectorStr = implode('.', $selector);
-        if (is_array($collection) && isset($collection[$selectorStr]))
+        // Keys containing dots, e.g. $vars['user.name']
+        if (count($selector) > 1 && is_array($collection))
         {
-            $var = $collection[$selectorStr];
-            return true;
+            $selectorStr = implode('.', $selector);
+            if (isset($collection[$selectorStr]))
+            {
+                $var = $collection[$selectorStr];
+                return true;
+            }
         }
 
-        $firstSelector = $selector[0];
+        $isFound = self::SelectKey($collection, $selector[0], $value);
 
         if (count($selector) > 1)
         {
-            $newCollection = null;
-
-            if ((
-                    is_array($collection) && 
-                    isset($collection[$firstSelector]) &&
-                    is_array($collection[$firstSelector]) || is_object($collection[$firstSelector])
-                ) ||
-                (
-                    is_object($collection) && 
-                    isset($collection->$firstSelector) &&
-                    is_array($collection->$firstSelector) || is_object($collection->$firstSelector)
-                ))
-            {
-                $newCollection = is_array($collection) ? $collection[$firstSelector] : $collection->$firstSelector;
-            }
-
-            if ($newCollection != null)
-            {
-                unset($selector[0]);
-                return self::SelectQuery($newCollection, array_values($selector), $var);
-            }
+            if ($isFound && (is_array($value) || is_object($value)))
+                return self::SelectQuery($value, array_slice($selector, 1), $var);
             else return false;
         }
-        else
+        elseif ($isFound)
         {
-            if (is_array($collection) && isset($collection[$firstSelector]))
-            {
-                $var = $collection[$firstSelector];
-                return true;
-            }
-            elseif (is_object($collection) && isset($collection->$firstSelector))
-            {
-                $var = $collection->$firstSelector;
-                return true;
-            }
-
-            $var = '';
-            return false;
+            $var = $value;
+            return true;
         }
+
+        $var = '';
+        return false;
+    }
+
+    /**
+     * Select single key of an array or an object (including ArrayAccess objects)
+     * @return bool TRUE if the key is set
+     */
+    private static function SelectKey($collection, $key, &$value)
+    {
+        if (is_array($collection))
+        {
+            if (!isset($collection[$key])) return false;
+            $value = $collection[$key];
+            return true;
+        }
+        elseif (is_object($collection) && $key !== '')
+        {
+            if (isset($collection->$key))
+                $value = $collection->$key;
+            elseif ($collection instanceof \ArrayAccess && isset($collection[$key]))
+                $value = $collection[$key];
+            else return false;
+
+            return true;
+        }
+
+        return false;
     }
 }

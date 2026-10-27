@@ -8,3 +8,4 @@ error_log
 .vs/ATMF/v16/.suo
 .vs
 .vscode
+tests/

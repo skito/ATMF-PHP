@@ -14,7 +14,7 @@ class StrUppercase implements \ATMF\Extension
     public function Get($args)
     {
         $str = '';
-        foreach($args as $arg) $str .= $arg;
+        foreach($args as $arg) $str .= \ATMF\Tag::ToString($arg);
         return mb_strtoupper($str);
     }
 
@@ -29,7 +29,7 @@ class StrLowercase implements \ATMF\Extension
     public function Get($args)
     {
         $str = '';
-        foreach($args as $arg) $str .= $arg;
+        foreach($args as $arg) $str .= \ATMF\Tag::ToString($arg);
         return mb_strtolower($str);
     }
 
@@ -44,7 +44,7 @@ class StrUcfirst implements \ATMF\Extension
     public function Get($args)
     {
         $str = '';
-        foreach($args as $arg) $str .= $arg;
+        foreach($args as $arg) $str .= \ATMF\Tag::ToString($arg);
 
         if ($str != '')
         {
@@ -66,7 +66,7 @@ class StrLcfirst implements \ATMF\Extension
     public function Get($args)
     {
         $str = '';
-        foreach($args as $arg) $str .= $arg;
+        foreach($args as $arg) $str .= \ATMF\Tag::ToString($arg);
 
         if ($str != '')
         {
