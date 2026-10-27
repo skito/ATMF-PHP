@@ -76,8 +76,8 @@ class Functions
                     if ($reverseCond)
                         $result = !$result;
 
-                    if ($matchAll && !$result)
-                        break;
+                    if ($matchAll && !$result) break;
+                    if (!$matchAll && $result) break;
                 }
 
                 self::$_lastConditionResults[] = !$result;

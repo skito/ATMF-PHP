@@ -52,10 +52,10 @@ class Culture
             }
         }
 
-        if (!isset($cultureResources[$realKeypath])) return '';
+        if (!isset($cultureResources[$realKeypath])) return null;
 
         $resource = $cultureResources[$realKeypath];
-        $translation = '';
+        $translation = null;
         if (is_array($resource))
         {
             $plural = isset($args[0]) && is_numeric($args[0]) && $args[0] != 1;

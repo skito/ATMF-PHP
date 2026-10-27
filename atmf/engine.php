@@ -236,7 +236,7 @@ namespace ATMF {
             $tag = Tag::ParseStr($key);
             if ($tag == null) return;
 
-            if ($val != null) $tag->Set($this, $val);
+            if ($val !== null) $tag->Set($this, $val);
             else return $tag->Build($this);
         }
 
@@ -307,10 +307,35 @@ namespace ATMF {
                     !file_exists($this->_cultureFolder) ||
                     !is_dir($this->_cultureFolder))
                     die('ATMF Error: Culture '.$culture.' not found!');*/
+                
+                \ATMF\Culture::LoadSettings($this);
+                $default = \ATMF\Culture::$settings['default'] ?? '';
+                $locales = \ATMF\Culture::$settings['locale'] ?? [];
+                
+                if (!isset($locales[$culture ?? '']))
+                    $culture = $default;
 
                 $this->_currentCulture = $culture;
                 Culture::ResetTranslations();
             }
+        }
+
+        /**
+         * Check if a culture is supported
+         * @param string $culture Culture to check
+         * @param bool $forceDefault Force default culture if the culture is not supported
+         * @return bool True if the culture is supported. False otherwise.
+         */
+        public function IsSupportedCulture(&$culture, $forceDefault=false)
+        {
+            $isSupported = isset(\ATMF\Culture::$settings['locale'][$culture]);
+            if ($forceDefault && !$isSupported)
+            {
+                $default = \ATMF\Culture::$settings['default'] ?? '';
+                $culture = $default;
+            }
+
+            return $isSupported;
         }
 
         /**
@@ -406,10 +431,9 @@ namespace ATMF {
          */
         public function Rend($capture=false, $baseTemplate=null)
         {
-            $cbBeforeEnd = $this->_callbacks['beforerend'] ?? [];
-            if (is_array($cbBeforeEnd))
+            if (isset($this->_callbacks['beforerend']) && is_array($this->_callbacks['beforerend']))
             {
-                foreach($cbBeforeEnd as $callback)
+                foreach($this->_callbacks['beforerend'] as $callback)
                 {
                     if (is_callable($callback))
                         $baseTemplate = call_user_func($callback, $baseTemplate, $capture);
@@ -451,10 +475,9 @@ namespace ATMF {
             // Replace escaped tags
             $output = str_replace(['\{$', '\{@', '\{#', '\{/'], ['{$', '{@', '{#', '{/'], $output);
 
-            $cbAfterEnd = $this->_callbacks['afterend'] ?? [];
-            if (is_array($cbAfterEnd))
+            if (isset($this->_callbacks['afterrend']) && is_array($this->_callbacks['afterrend']))
             {
-                foreach($cbAfterEnd as $callback)
+                foreach($this->_callbacks['afterrend'] as $callback)
                 {
                     if (is_callable($callback))
                         $output = call_user_func($callback, $output, $baseTemplate, $capture);
